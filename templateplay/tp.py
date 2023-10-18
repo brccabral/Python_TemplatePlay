@@ -2,13 +2,14 @@ import os
 import cv2
 import pyautogui
 import numpy as np
-from typing import Dict
+from typing import Dict, List
 
 
 class TemplateImage:
-    def __init__(self, path):
+    def __init__(self, path, threshold=0.6):
         self.img_path = path
         self.img_cv2 = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+        self.threshold = threshold
 
     def __repr__(self):
         value = self.img_path
@@ -17,9 +18,16 @@ class TemplateImage:
 
 
 class Template:
+    base_color = 0  # 0 - 360
+
     def __init__(self, name):
         self.name = name
         self.images: list[TemplateImage] = []
+        self.base_hsv = np.array(
+            [[[np.uint8(self.base_color), np.uint8(255), np.uint8(255)]]]
+        )
+        self.rect_color = cv2.cvtColor(self.base_hsv, cv2.COLOR_HSV2BGR)
+        self.base_color += 51
 
     def add_image(self, path):
         self.images.append(TemplateImage(path))
@@ -45,18 +53,40 @@ def load_templates(directory: str):
 
 
 def screenshot(region):
+    # pyautogui.screenshot returns a Pillow Image, which is RGB,
+    # but opencv works with BGR
     img = pyautogui.screenshot(region=region)
     np_img = np.array(img)
     cv_img = cv2.cvtColor(np_img, cv2.COLOR_RGB2BGR)
     return cv_img
 
 
-def find_templates(screen, template_images):
-    print(f"{screen=}")
-    print(f"{template_images=}")
-    return template_images
+class TemplatePosition:
+    def __init__(self, template_img: TemplateImage, x: int, y: int):
+        self.template_img = template_img
+        self.x = x
+        self.y = y
+
+
+def find_templates(screen, template_images: dict[str, Template], group_threshold = 1, epsilon = 0.2):
+    positions: List[TemplatePosition] = []
+    for name, template in template_images.items():
+        for templ_img in template.images:
+            result = cv2.matchTemplate(screen, templ_img.img_cv2, cv2.TM_CCOEFF_NORMED)
+            locations = np.where(result >= np.array(templ_img.threshold))
+            if len(locations):
+                # filter duplicates
+                rectangles = []
+                for loc in locations:
+                    rectangles.append([int(loc[0]), int(loc[1]), int(templ_img.img_cv2.shape[0]), int(templ_img.img_cv2.shape[1])])
+                    # force a duplication so cv2.groupRectangles don't remove
+                    # locations that have only one rectangle
+                    rectangles.append([int(loc[0]), int(loc[1]), int(templ_img.img_cv2.shape[0]), int(templ_img.img_cv2.shape[1])])
+                rectangles, weights = cv2.groupRectangles(rectangles, group_threshold, epsilon)
+                for rect in rectangles:
+                    positions.append(TemplatePosition(templ_img, rect[0], rect[1]))
+    return positions
 
 
 def show(screen, template_positions):
-    print(f"{screen=}")
-    print(f"{template_positions=}")
+    
