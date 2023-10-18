@@ -1,5 +1,7 @@
 import os
 import cv2
+import pyautogui
+import numpy as np
 from typing import Dict
 
 
@@ -43,8 +45,10 @@ def load_templates(directory: str):
 
 
 def screenshot(region):
-    print(f"{region=}")
-    return region
+    img = pyautogui.screenshot(region=region)
+    np_img = np.array(img)
+    cv_img = cv2.cvtColor(np_img, cv2.COLOR_RGB2BGR)
+    return cv_img
 
 
 def find_templates(screen, template_images):
