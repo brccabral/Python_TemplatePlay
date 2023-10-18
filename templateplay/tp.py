@@ -8,7 +8,7 @@ from typing import Dict, List
 class TemplateImage:
     def __init__(self, path, threshold=0.6):
         self.img_path = path
-        self.img_cv2 = cv2.imread(path, cv2.IMREAD_UNCHANGED)
+        self.img_cv2 = cv2.imread(path, cv2.COLOR_RGB2BGR)
         self.threshold = threshold
 
     def __repr__(self):
