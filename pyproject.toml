@@ -5,3 +5,15 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "templateplay"
 version = "0.0.1"
+requires-python = ">=3.11"
+authors = [
+  { name="Bruno Cabral", email="cabral.brc@gmail.com" },
+]
+description = "Use images template matching to send commands"
+classifiers = [
+    "License :: OSI Approved :: MIT License",
+]
+dependencies = [
+    "opencv-python>=4.8",
+    "pyautogui>=0.9",
+]
