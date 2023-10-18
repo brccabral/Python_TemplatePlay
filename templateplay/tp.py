@@ -31,11 +31,15 @@ class Template:
     def __init__(self, name):
         self.name = name
         self.images: list[TemplateImage] = []
-        self.base_hsv = np.array(
-            [[[np.uint8(self.base_color), np.uint8(255), np.uint8(255)]]]
+        self.base_hsv = np.array([[[Template.base_color, 255, 255]]], dtype=np.uint8)
+        rect_color = cv2.cvtColor(self.base_hsv, cv2.COLOR_HSV2BGR)
+        self.rect_color = (
+            int(rect_color[0][0][0]),
+            int(rect_color[0][0][1]),
+            int(rect_color[0][0][2]),
         )
-        self.rect_color = cv2.cvtColor(self.base_hsv, cv2.COLOR_HSV2BGR)
-        self.base_color += 51
+        Template.base_color += 51
+        Template.base_color %= 360
 
     def add_image(self, path):
         self.images.append(TemplateImage(path))
