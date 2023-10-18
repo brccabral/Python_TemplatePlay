@@ -16,6 +16,14 @@ class TemplateImage:
         value += " " + str(self.img_cv2.shape)
         return value
 
+    @property
+    def width(self):
+        return self.img_cv2.shape[0]
+
+    @property
+    def height(self):
+        return self.img_cv2.shape[1]
+
 
 class Template:
     base_color = 0  # 0 - 360
