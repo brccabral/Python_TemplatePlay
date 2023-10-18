@@ -3,6 +3,7 @@ import cv2
 import pyautogui
 import numpy as np
 from typing import Dict, List
+from cv2.typing import MatLike, Scalar
 
 
 class TemplateImage:
@@ -146,5 +147,14 @@ def find_templates(
     return positions
 
 
-def show(screen, template_positions):
-    
+def show(screen, template_positions: List[TemplatePosition]):
+    for position in template_positions:
+        cv2.rectangle(
+            screen,
+            position.start_position,
+            position.end_position,
+            position.color,
+            position.thickness,
+        )
+    cv2.imshow("Templates", screen)
+    cv2.waitKey(1)
