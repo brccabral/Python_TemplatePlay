@@ -1,3 +1,4 @@
+from collections import defaultdict
 import os
 import cv2
 import numpy as np
@@ -17,6 +18,9 @@ class TemplatePlay:
     def __init__(self):
         self.running = True
         self.window = WindowCapture()
+        self.TRACKWINDOW = "TRACKWINDOW"
+
+        self.hsv_filter = defaultdict(int)
 
     def load_templates(self, directory: str):
         templates: Dict[str, Template] = dict()
@@ -82,3 +86,85 @@ class TemplatePlay:
         if cv2.waitKey(1) == ord("q"):
             cv2.destroyAllWindows()
             self.running = False
+
+    def init_control_gui(self):
+        cv2.namedWindow(self.TRACKWINDOW, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(self.TRACKWINDOW, 350, 700)
+
+        def callback(value, indicator):
+            print(f"{indicator} {value}")
+            self.hsv_filter[indicator] = value
+
+        cv2.createTrackbar(
+            "HMin", self.TRACKWINDOW, 0, 179, lambda value: callback(value, "HMin")
+        )
+        cv2.createTrackbar(
+            "SMin", self.TRACKWINDOW, 0, 255, lambda value: callback(value, "SMin")
+        )
+        cv2.createTrackbar(
+            "VMin", self.TRACKWINDOW, 0, 255, lambda value: callback(value, "VMin")
+        )
+
+        cv2.createTrackbar(
+            "HMax", self.TRACKWINDOW, 0, 179, lambda value: callback(value, "HMax")
+        )
+        cv2.createTrackbar(
+            "SMax", self.TRACKWINDOW, 0, 255, lambda value: callback(value, "SMax")
+        )
+        cv2.createTrackbar(
+            "VMax", self.TRACKWINDOW, 0, 255, lambda value: callback(value, "VMax")
+        )
+
+        cv2.setTrackbarPos("HMax", self.TRACKWINDOW, 179)
+        cv2.setTrackbarPos("SMax", self.TRACKWINDOW, 255)
+        cv2.setTrackbarPos("VMax", self.TRACKWINDOW, 255)
+
+        cv2.createTrackbar(
+            "SAdd", self.TRACKWINDOW, 0, 255, lambda value: callback(value, "SAdd")
+        )
+        cv2.createTrackbar(
+            "SSub", self.TRACKWINDOW, 0, 255, lambda value: callback(value, "SSub")
+        )
+        cv2.createTrackbar(
+            "VAdd", self.TRACKWINDOW, 0, 255, lambda value: callback(value, "VAdd")
+        )
+        cv2.createTrackbar(
+            "VSub", self.TRACKWINDOW, 0, 255, lambda value: callback(value, "VSub")
+        )
+
+    def apply_hsv_filter(self, original_image):
+        hsv = cv2.cvtColor(original_image, cv2.COLOR_BGR2HSV)
+
+        h, s, v = cv2.split(hsv)
+        s = self.shift_channel(s, self.hsv_filter["SAdd"])
+        s = self.shift_channel(s, -self.hsv_filter["SSub"])
+        v = self.shift_channel(v, self.hsv_filter["VAdd"])
+        v = self.shift_channel(v, -self.hsv_filter["VSub"])
+        hsv = cv2.merge([h, s, v])
+
+        lower = np.array(
+            [self.hsv_filter["HMin"], self.hsv_filter["SMin"], self.hsv_filter["VMin"]]
+        )
+        upper = np.array(
+            [self.hsv_filter["HMax"], self.hsv_filter["SMax"], self.hsv_filter["VMax"]]
+        )
+
+        mask = cv2.inRange(hsv, lower, upper)
+        result = cv2.bitwise_and(hsv, hsv, mask=mask)
+
+        img = cv2.cvtColor(result, cv2.COLOR_HSV2BGR)
+
+        return img
+
+    def shift_channel(self, c, amount):
+        if amount > 0:
+            lim = 255 - amount
+            c[c >= lim] = 255
+            c[c < lim] += amount
+        elif amount < 0:
+            amount = -amount
+            lim = amount
+            c[c <= lim] = 0
+            c[c > lim] -= amount
+
+        return c

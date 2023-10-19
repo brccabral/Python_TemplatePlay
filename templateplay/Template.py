@@ -4,7 +4,7 @@ import numpy as np
 
 
 class Template:
-    base_color = 0  # 0 - 360
+    base_color = 0  # 0 - 180
 
     def __init__(self, name):
         self.name = name
@@ -17,7 +17,7 @@ class Template:
             int(rect_color[0][0][2]),
         )
         Template.base_color += 51
-        Template.base_color %= 360
+        Template.base_color %= 180
 
     def add_image(self, path):
         self.images.append(TemplateImage(path))
