@@ -24,11 +24,11 @@ class TemplateImage:
 
     @property
     def width(self):
-        return self.img_cv2.shape[0]
+        return self.img_cv2.shape[1]
 
     @property
     def height(self):
-        return self.img_cv2.shape[1]
+        return self.img_cv2.shape[0]
 
 
 class Template:
@@ -113,24 +113,16 @@ def find_templates(
                 # filter duplicates
                 rectangles = []
                 for l, x in enumerate(xloc):
-                    rectangles.append(
-                        [
-                            int(x),
-                            int(yloc[l]),
-                            int(templ_img.width),
-                            int(templ_img.height),
-                        ]
-                    )
+                    rect = [
+                        int(x),
+                        int(yloc[l]),
+                        int(templ_img.width),
+                        int(templ_img.height),
+                    ]
+                    rectangles.append(rect)
                     # force a duplication so cv2.groupRectangles don't remove
                     # locations that have only one rectangle
-                    rectangles.append(
-                        [
-                            int(x),
-                            int(yloc[l]),
-                            int(templ_img.width),
-                            int(templ_img.height),
-                        ]
-                    )
+                    rectangles.append(rect)
                 rectangles, weights = cv2.groupRectangles(
                     rectangles, group_threshold, epsilon
                 )
