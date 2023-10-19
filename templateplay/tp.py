@@ -5,6 +5,11 @@ import numpy as np
 from typing import Dict, List
 from cv2.typing import MatLike, Scalar
 
+if os.name == "nt":
+    from .screen_utils_win import Win
+else:
+    from .screen_utils_linux import WindowCaptureLinux as WindowCapture
+
 
 class TemplateImage:
     def __init__(self, path, threshold=0.6):
@@ -63,15 +68,6 @@ def load_templates(directory: str):
             for file in files:
                 templates[template_name].add_image(os.path.join(root, file))
     return templates
-
-
-def screenshot(region):
-    # pyautogui.screenshot returns a Pillow Image, which is RGB,
-    # but opencv works with BGR
-    img = pyautogui.screenshot(region=region)
-    np_img = np.array(img)
-    cv_img = cv2.cvtColor(np_img, cv2.COLOR_RGB2BGR)
-    return cv_img
 
 
 class TemplatePosition:
