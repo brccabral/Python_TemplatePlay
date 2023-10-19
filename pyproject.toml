@@ -10,6 +10,7 @@ authors = [
   { name="Bruno Cabral", email="cabral.brc@gmail.com" },
 ]
 license = {text = "MIT License"}
+readme = "README.md"
 description = "Use images template matching to send commands"
 classifiers = [
     "License :: OSI Approved :: MIT License",
