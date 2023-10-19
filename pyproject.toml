@@ -9,6 +9,7 @@ requires-python = ">=3.11"
 authors = [
   { name="Bruno Cabral", email="cabral.brc@gmail.com" },
 ]
+license = {text = "MIT License"}
 description = "Use images template matching to send commands"
 classifiers = [
     "License :: OSI Approved :: MIT License",
