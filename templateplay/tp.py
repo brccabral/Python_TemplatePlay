@@ -2,10 +2,13 @@ from collections import defaultdict
 import os
 import cv2
 import numpy as np
-from typing import Dict, List
-from cv2.typing import MatLike
+from typing import Dict, List, Sequence
+from cv2.typing import MatLike, Rect
 from .Template import Template
 from .TemplatePosition import TemplatePosition
+from .TemplateImage import TemplateImage
+import threading
+from concurrent.futures import ThreadPoolExecutor
 
 
 if os.name == "nt":
@@ -21,6 +24,8 @@ class TemplatePlay:
         self.TRACKWINDOW = "TRACKWINDOW"
 
         self.hsv_filter = defaultdict(int)
+
+        self.executor = ThreadPoolExecutor(max_workers=4)
 
     def load_templates(self, directory: str):
         templates: Dict[str, Template] = dict()
@@ -40,36 +45,54 @@ class TemplatePlay:
         group_threshold=1,
         epsilon=0.2,
     ):
+        def get_positions(
+            screen, templ_img: TemplateImage, color, group_threshold, epsilon
+        ):
+            positions: List[TemplatePosition] = []
+            result = cv2.matchTemplate(screen, templ_img.img_cv2, cv2.TM_CCOEFF_NORMED)
+            yloc, xloc = np.where(result >= np.array(templ_img.threshold))
+            if len(xloc):
+                # filter duplicates
+                rectangles: Sequence[Rect] = []
+                for l, x in enumerate(xloc):
+                    rect = [
+                        int(x),
+                        int(yloc[l]),
+                        int(templ_img.width),
+                        int(templ_img.height),
+                    ]
+                    rectangles.append(rect)
+                    # force a duplication so cv2.groupRectangles don't remove
+                    # locations that have only one rectangle
+                    rectangles.append(rect)
+                rectangles, weights = cv2.groupRectangles(
+                    rectangles, group_threshold, epsilon
+                )
+                for rect in rectangles:
+                    positions.append(
+                        TemplatePosition(templ_img, rect[0], rect[1], color)
+                    )
+            return positions
+
         positions: List[TemplatePosition] = []
+        returned_msgs = []
+
         for name, template in template_images.items():
             for templ_img in template.images:
-                result = cv2.matchTemplate(
-                    screen, templ_img.img_cv2, cv2.TM_CCOEFF_NORMED
+                # rectangles = get_rects(templ_img)
+                returned_future_msg = self.executor.submit(
+                    get_positions,
+                    screen,
+                    templ_img,
+                    template.rect_color,
+                    group_threshold,
+                    epsilon,
                 )
-                yloc, xloc = np.where(result >= np.array(templ_img.threshold))
-                if len(xloc):
-                    # filter duplicates
-                    rectangles = []
-                    for l, x in enumerate(xloc):
-                        rect = [
-                            int(x),
-                            int(yloc[l]),
-                            int(templ_img.width),
-                            int(templ_img.height),
-                        ]
-                        rectangles.append(rect)
-                        # force a duplication so cv2.groupRectangles don't remove
-                        # locations that have only one rectangle
-                        rectangles.append(rect)
-                    rectangles, weights = cv2.groupRectangles(
-                        rectangles, group_threshold, epsilon
-                    )
-                    for rect in rectangles:
-                        positions.append(
-                            TemplatePosition(
-                                templ_img, rect[0], rect[1], template.rect_color
-                            )
-                        )
+                returned_msgs.append(returned_future_msg)
+
+        for r in returned_msgs:
+            positions += r.result()
+
         return positions
 
     def draw_rectangles(self, screen, template_positions: List[TemplatePosition]):
