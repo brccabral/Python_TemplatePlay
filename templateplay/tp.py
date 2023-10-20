@@ -45,36 +45,40 @@ class TemplatePlay:
         group_threshold=1,
         epsilon=0.2,
     ):
+        self.positions: List[TemplatePosition] = []
+        lock = threading.Lock()
+
         def get_positions(
             screen, templ_img: TemplateImage, color, group_threshold, epsilon
         ):
-            positions: List[TemplatePosition] = []
             result = cv2.matchTemplate(screen, templ_img.img_cv2, cv2.TM_CCOEFF_NORMED)
-            yloc, xloc = np.where(result >= np.array(templ_img.threshold))
-            if len(xloc):
-                # filter duplicates
-                rectangles: Sequence[Rect] = []
-                for l, x in enumerate(xloc):
-                    rect = [
-                        int(x),
-                        int(yloc[l]),
-                        int(templ_img.width),
-                        int(templ_img.height),
-                    ]
-                    rectangles.append(rect)
-                    # force a duplication so cv2.groupRectangles don't remove
-                    # locations that have only one rectangle
-                    rectangles.append(rect)
-                rectangles, weights = cv2.groupRectangles(
-                    rectangles, group_threshold, epsilon
-                )
+            # returns [Y..], [X...]
+            locations = np.where(result >= np.array(templ_img.threshold))
+            # organize as [(x, y)...]
+            locations = list(zip(*locations[::-1]))
+            # filter duplicates
+            rectangles: Sequence[Rect] = []
+            for x, y in locations:
+                rect = [
+                    int(x),
+                    int(y),
+                    int(templ_img.width),
+                    int(templ_img.height),
+                ]
+                rectangles.append(rect)
+                # force a duplication so cv2.groupRectangles don't remove
+                # locations that have only one rectangle
+                rectangles.append(rect)
+            rectangles, weights = cv2.groupRectangles(
+                rectangles, group_threshold, epsilon
+            )
+            # auto unlock
+            with lock:
                 for rect in rectangles:
-                    positions.append(
+                    self.positions.append(
                         TemplatePosition(templ_img, rect[0], rect[1], color)
                     )
-            return positions
 
-        positions: List[TemplatePosition] = []
         returned_msgs = []
 
         for name, template in template_images.items():
@@ -90,10 +94,11 @@ class TemplatePlay:
                 )
                 returned_msgs.append(returned_future_msg)
 
+        # join threads
         for r in returned_msgs:
-            positions += r.result()
+            r.result()
 
-        return positions
+        return self.positions
 
     def draw_rectangles(self, screen, template_positions: List[TemplatePosition]):
         for position in template_positions:
