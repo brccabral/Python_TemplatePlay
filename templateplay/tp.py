@@ -25,7 +25,7 @@ class TemplatePlay:
 
         self.hsv_filter = defaultdict(int)
 
-        self.executor = ThreadPoolExecutor(max_workers=4)
+        self.executor = ThreadPoolExecutor(max_workers=10)
 
     def load_templates(self, directory: str):
         templates: Dict[str, Template] = dict()
@@ -45,12 +45,12 @@ class TemplatePlay:
         group_threshold=1,
         epsilon=0.2,
     ):
-        self.positions: List[TemplatePosition] = []
-        lock = threading.Lock()
+        templ_positions: List[TemplatePosition] = []
 
         def get_positions(
             screen, templ_img: TemplateImage, color, group_threshold, epsilon
         ):
+            positions = []
             result = cv2.matchTemplate(screen, templ_img.img_cv2, cv2.TM_CCOEFF_NORMED)
             # returns [Y..], [X...]
             locations = np.where(result >= np.array(templ_img.threshold))
@@ -72,12 +72,11 @@ class TemplatePlay:
             rectangles, weights = cv2.groupRectangles(
                 rectangles, group_threshold, epsilon
             )
-            # auto unlock
-            with lock:
-                for rect in rectangles:
-                    self.positions.append(
-                        TemplatePosition(templ_img, rect[0], rect[1], color)
-                    )
+            for rect in rectangles:
+                positions.append(
+                    TemplatePosition(templ_img, rect[0], rect[1], color)
+                )
+            return positions
 
         returned_msgs = []
 
@@ -96,9 +95,9 @@ class TemplatePlay:
 
         # join threads
         for r in returned_msgs:
-            r.result()
+            templ_positions += r.result()
 
-        return self.positions
+        return templ_positions
 
     def draw_rectangles(self, screen, template_positions: List[TemplatePosition]):
         for position in template_positions:
