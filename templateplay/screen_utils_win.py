@@ -34,6 +34,7 @@ class WindowCaptureWin(WindowCaptureABC):
         self.cropped_x = border_pixels
         self.cropped_y = titlebar_pixels
 
+        # because we cropped the image, the actual position on screen needs an offset
         self.offset_x = self.cropped_x + window_rect[0]
         self.offset_y = self.cropped_y + window_rect[1]
 
@@ -82,5 +83,6 @@ class WindowCaptureWin(WindowCaptureABC):
 
         win32gui.EnumWindows(winEnumHandler, None)
 
+    # is you move the original window, this will be wrong
     def get_screen_position(self, pos):
         return (pos[0] + self.offset_x, pos[1] + self.offset_y)
