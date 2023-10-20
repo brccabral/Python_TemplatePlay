@@ -1,5 +1,5 @@
 # pip install pywin32
-from typing import Optional
+from typing import Optional, Tuple
 import win32gui
 import win32ui
 import win32con
@@ -8,8 +8,13 @@ from .screen_utils import WindowCaptureABC
 
 
 # https://www.youtube.com/watch?v=WymCpVUPWQ4
-class WindowCaptureLinux(WindowCaptureABC):
-    def __init__(self, window_name: Optional[str] = None):
+class WindowCaptureWin(WindowCaptureABC):
+    def __init__(
+        self,
+        *,
+        window_name: Optional[str] = None,
+        region: Optional[Tuple[int, int, int, int]] = None,
+    ):
         if window_name is None:
             self.hwnd = win32gui.GetDesktopWindow()
         else:
@@ -32,7 +37,7 @@ class WindowCaptureLinux(WindowCaptureABC):
         self.offset_x = self.cropped_x + window_rect[0]
         self.offset_y = self.cropped_y + window_rect[1]
 
-    def screenshot(self, region):
+    def screenshot(self):
         # w = region[2] - region[0]
         # h = region[3] - region[1]
 

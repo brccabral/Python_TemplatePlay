@@ -2,7 +2,7 @@ from collections import defaultdict
 import os
 import cv2
 import numpy as np
-from typing import Dict, List, Sequence
+from typing import Dict, List, Optional, Sequence, Tuple
 from cv2.typing import MatLike, Rect
 from .Template import Template
 from .TemplatePosition import TemplatePosition
@@ -12,15 +12,20 @@ from concurrent.futures import ThreadPoolExecutor
 
 
 if os.name == "nt":
-    from .screen_utils_win import WindowCapture
+    from .screen_utils_win import WindowCaptureWin as WindowCapture
 else:
     from .screen_utils_linux import WindowCaptureLinux as WindowCapture
 
 
 class TemplatePlay:
-    def __init__(self):
+    def __init__(
+        self,
+        *,
+        window_name: Optional[str] = None,
+        region: Optional[Tuple[int, int, int, int]] = None,
+    ):
         self.running = True
-        self.window = WindowCapture()
+        self.window = WindowCapture(window_name=window_name, region=region)
         self.TRACKWINDOW = "TRACKWINDOW"
 
         self.hsv_filter = defaultdict(int)
@@ -73,9 +78,7 @@ class TemplatePlay:
                 rectangles, group_threshold, epsilon
             )
             for rect in rectangles:
-                positions.append(
-                    TemplatePosition(templ_img, rect[0], rect[1], color)
-                )
+                positions.append(TemplatePosition(templ_img, rect[0], rect[1], color))
             return positions
 
         returned_msgs = []
