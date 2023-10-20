@@ -1,6 +1,8 @@
 # pip install pywin32
-from typing import Optional, Tuple
-import win32gui, win32ui, win32con
+from typing import Optional
+import win32gui
+import win32ui
+import win32con
 import numpy as np
 from .screen_utils import WindowCaptureABC
 
@@ -49,8 +51,6 @@ class WindowCaptureLinux(WindowCaptureABC):
         )
 
         signedIntsArray = dataBitMap.GetBitmapsBits(True)
-        img = np.fromstring(signedIntsArray, dtype="uint8")
-        img.shape = (self.h, self.w, 4)
 
         # Free resources
         dcObj.DeleteDC()
@@ -58,7 +58,13 @@ class WindowCaptureLinux(WindowCaptureABC):
         win32gui.ReleaseDC(self.hwnd, wDC)
         win32gui.DeleteObject(dataBitMap.GetHandle())
 
+        # convert to screen format
+        img = np.fromstring(signedIntsArray, dtype="uint8")
+        img.shape = (self.h, self.w, 4)
+        # drop alpha channel for cv.matchTemplate
         img = img[..., :3]
+        # make image contiguous for cv.draw_rectangles
+        # https://github.com/opencv/opencv/issues/14866
         img = np.ascontiguousarray(img)
 
         return img
