@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "templateplay"
 version = "0.0.3"
-requires-python = ">=3.11"
+requires-python = ">=3.10"
 authors = [
   { name="Bruno Cabral", email="cabral.brc@gmail.com" },
 ]

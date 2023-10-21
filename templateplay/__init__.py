@@ -1,1 +1,1 @@
-from .tp import TemplatePlay
+from .tp import TemplatePlay, WindowCapture
