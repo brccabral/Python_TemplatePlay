@@ -7,7 +7,6 @@ from cv2.typing import MatLike, Rect
 from .Template import Template
 from .TemplatePosition import TemplatePosition
 from .TemplateImage import TemplateImage
-import threading
 from concurrent.futures import ThreadPoolExecutor
 
 
@@ -112,6 +111,7 @@ class TemplatePlay:
                 position.thickness,
             )
 
+    def show(self, screen):
         cv2.imshow("Templates", screen)
         if cv2.waitKey(1) == ord("q"):
             cv2.destroyAllWindows()
